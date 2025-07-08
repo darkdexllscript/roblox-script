@@ -1,28 +1,19 @@
--- MADE BY DARKDEX splash screen
 local player = game.Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
-local splash = Instance.new("ScreenGui", playerGui)
-splash.Name = "SplashScreen"
+local noclipOn = false
+local flyOn = false
+local bodyGyro, bodyVelocity
+local noclipConnection
 
-local label = Instance.new("TextLabel", splash)
-label.Size = UDim2.new(1,0,1,0)
-label.BackgroundColor3 = Color3.new(0,0,0)
-label.TextColor3 = Color3.fromRGB(255, 128, 0)
-label.TextScaled = true
-label.Font = Enum.Font.GothamBold
-label.Text = "MADE BY DARKDEX"
-label.TextStrokeTransparency = 0
-label.TextStrokeColor3 = Color3.new(0,0,0)
+local function createGui()
+    local oldGui = playerGui:FindFirstChild("DarkDexGui")
+    if oldGui then oldGui:Destroy() end
 
-task.delay(2, function()
-    splash:Destroy()
+    local gui = Instance.new("ScreenGui", playerGui)
+    gui.Name = "DarkDexGui"
 
-    -- GUI başlıyor
-    local RayfieldLikeGui = Instance.new("ScreenGui", playerGui)
-    RayfieldLikeGui.Name = "DarkDexGui"
-
-    local frame = Instance.new("Frame", RayfieldLikeGui)
+    local frame = Instance.new("Frame", gui)
     frame.Size = UDim2.new(0, 300, 0, 400)
     frame.Position = UDim2.new(0, 20, 0, 50)
     frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
@@ -40,7 +31,6 @@ task.delay(2, function()
     title.Text = "DarkDex - Cart Ride"
     title.Name = "Title"
 
-    -- Close button
     local closeBtn = Instance.new("TextButton", frame)
     closeBtn.Text = "X"
     closeBtn.Size = UDim2.new(0, 30, 0, 30)
@@ -50,7 +40,7 @@ task.delay(2, function()
     closeBtn.Font = Enum.Font.GothamBold
     closeBtn.TextSize = 20
     closeBtn.MouseButton1Click:Connect(function()
-        RayfieldLikeGui:Destroy()
+        gui:Destroy()
     end)
 
     local buttonsFrame = Instance.new("Frame", frame)
@@ -63,30 +53,28 @@ task.delay(2, function()
     UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
     UIListLayout.Padding = UDim.new(0, 10)
 
-    -- Noclip Toggle
+    local RunService = game:GetService("RunService")
+    local UserInputService = game:GetService("UserInputService")
+
+    local character = player.Character or player.CharacterAdded:Wait()
+    local rootPart = character:WaitForChild("HumanoidRootPart")
+
     local noclipBtn = Instance.new("TextButton", buttonsFrame)
     noclipBtn.Size = UDim2.new(1,0,0,40)
     noclipBtn.BackgroundColor3 = Color3.fromRGB(45,45,45)
     noclipBtn.TextColor3 = Color3.new(1,1,1)
     noclipBtn.Font = Enum.Font.GothamBold
     noclipBtn.TextSize = 18
-    noclipBtn.Text = "Noclip: Kapalı"
-    local noclipOn = false
-
-    local RunService = game:GetService("RunService")
-    local character = player.Character or player.CharacterAdded:Wait()
-    local rootPart = character:WaitForChild("HumanoidRootPart")
-
-    local noclipConnection
+    noclipBtn.Text = "Noclip: Off"
 
     noclipBtn.MouseButton1Click:Connect(function()
         noclipOn = not noclipOn
-        noclipBtn.Text = noclipOn and "Noclip: Açık" or "Noclip: Kapalı"
+        noclipBtn.Text = noclipOn and "Noclip: On" or "Noclip: Off"
 
         if noclipOn then
             noclipConnection = RunService.Stepped:Connect(function()
-                if noclipOn and rootPart then
-                    for _, part in pairs(character:GetChildren()) do
+                if noclipOn and rootPart and player.Character then
+                    for _, part in pairs(player.Character:GetChildren()) do
                         if part:IsA("BasePart") then
                             part.CanCollide = false
                         end
@@ -98,15 +86,16 @@ task.delay(2, function()
                 noclipConnection:Disconnect()
                 noclipConnection = nil
             end
-            for _, part in pairs(character:GetChildren()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = true
+            if player.Character then
+                for _, part in pairs(player.Character:GetChildren()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = true
+                    end
                 end
             end
         end
     end)
 
-    -- Speed Slider
     local speedLabel = Instance.new("TextLabel", buttonsFrame)
     speedLabel.Size = UDim2.new(1, 0, 0, 25)
     speedLabel.BackgroundTransparency = 1
@@ -115,54 +104,58 @@ task.delay(2, function()
     speedLabel.TextSize = 18
     speedLabel.Text = "Speed: 16"
 
-    local speedSlider = Instance.new("TextBox", buttonsFrame)
-    speedSlider.Size = UDim2.new(1, 0, 0, 30)
-    speedSlider.ClearTextOnFocus = false
-    speedSlider.Text = "16"
-    speedSlider.PlaceholderText = "Enter speed (16-200)"
-    speedSlider.TextColor3 = Color3.new(1,1,1)
-    speedSlider.BackgroundColor3 = Color3.fromRGB(45,45,45)
-    speedSlider.Font = Enum.Font.GothamBold
-    speedSlider.TextSize = 18
+    local speedBox = Instance.new("TextBox", buttonsFrame)
+    speedBox.Size = UDim2.new(1, 0, 0, 30)
+    speedBox.ClearTextOnFocus = false
+    speedBox.Text = "16"
+    speedBox.PlaceholderText = "Enter speed (16-200)"
+    speedBox.TextColor3 = Color3.new(1,1,1)
+    speedBox.BackgroundColor3 = Color3.fromRGB(45,45,45)
+    speedBox.Font = Enum.Font.GothamBold
+    speedBox.TextSize = 18
 
-    speedSlider.FocusLost:Connect(function(enterPressed)
+    speedBox.FocusLost:Connect(function(enterPressed)
         if enterPressed then
-            local val = tonumber(speedSlider.Text)
+            local val = tonumber(speedBox.Text)
             if val and val >= 16 and val <= 200 then
                 speedLabel.Text = "Speed: "..val
-                local humanoid = character:FindFirstChildOfClass("Humanoid")
+                local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
                 if humanoid then
                     humanoid.WalkSpeed = val
                 end
             else
-                speedLabel.Text = "Speed: Hatalı değer!"
+                speedLabel.Text = "Speed: Invalid value!"
                 task.delay(2, function()
                     speedLabel.Text = "Speed: 16"
-                    speedSlider.Text = "16"
+                    speedBox.Text = "16"
                 end)
             end
         end
     end)
 
-    -- Fly Toggle
     local flyBtn = Instance.new("TextButton", buttonsFrame)
     flyBtn.Size = UDim2.new(1,0,0,40)
     flyBtn.BackgroundColor3 = Color3.fromRGB(45,45,45)
     flyBtn.TextColor3 = Color3.new(1,1,1)
     flyBtn.Font = Enum.Font.GothamBold
     flyBtn.TextSize = 18
-    flyBtn.Text = "Fly: Kapalı"
-    local flyOn = false
-    local bodyGyro, bodyVelocity
+    flyBtn.Text = "Fly: Off"
 
-    local UserInputService = game:GetService("UserInputService")
+    local function stopFly()
+        RunService:UnbindFromRenderStep("Fly")
+        if bodyGyro then bodyGyro:Destroy() bodyGyro = nil end
+        if bodyVelocity then bodyVelocity:Destroy() bodyVelocity = nil end
+    end
 
     flyBtn.MouseButton1Click:Connect(function()
         flyOn = not flyOn
-        flyBtn.Text = flyOn and "Fly: Açık" or "Fly: Kapalı"
+        flyBtn.Text = flyOn and "Fly: On" or "Fly: Off"
 
-        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        local character = player.Character
+        if not character then return end
         local root = character:FindFirstChild("HumanoidRootPart")
+        if not root then return end
+
         if flyOn then
             bodyGyro = Instance.new("BodyGyro", root)
             bodyGyro.P = 9e4
@@ -205,9 +198,32 @@ task.delay(2, function()
                 end
             end)
         else
-            RunService:UnbindFromRenderStep("Fly")
-            if bodyGyro then bodyGyro:Destroy() end
-            if bodyVelocity then bodyVelocity:Destroy() end
+            stopFly()
         end
     end)
+end
+
+local splash = Instance.new("ScreenGui", playerGui)
+splash.Name = "SplashScreen"
+
+local label = Instance.new("TextLabel", splash)
+label.Size = UDim2.new(1,0,1,0)
+label.BackgroundColor3 = Color3.new(0,0,0)
+label.TextColor3 = Color3.fromRGB(255, 128, 0)
+label.TextScaled = true
+label.Font = Enum.Font.GothamBold
+label.Text = "MADE BY DARKDEX"
+label.TextStrokeTransparency = 0
+label.TextStrokeColor3 = Color3.new(0,0,0)
+
+task.delay(2, function()
+    splash:Destroy()
+    createGui()
+end)
+
+player.CharacterAdded:Connect(function(char)
+    task.wait(1)
+    noclipOn = false
+    flyOn = false
+    createGui()
 end)
